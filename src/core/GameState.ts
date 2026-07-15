@@ -23,6 +23,12 @@ export class GameState {
   structuresBuilt = 0;
   enemiesDefeated = 0;
 
+  // Cumulative totals (inventory can be spent, so quests track lifetime gains).
+  lifetimeWood = 0;
+  lifetimeStone = 0;
+  nightsSurvived = 0;
+  riftSealed = false;
+
   // Populated by the HUD so systems can request a re-render on change.
   onChange: (() => void) | null = null;
 
@@ -33,6 +39,8 @@ export class GameState {
 
   addResource(kind: ResourceKind, amount: number): void {
     this.inventory[kind] += amount;
+    if (kind === 'wood') this.lifetimeWood += amount;
+    if (kind === 'stone') this.lifetimeStone += amount;
     this.notify();
   }
 

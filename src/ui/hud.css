@@ -227,6 +227,117 @@ body,
   white-space: nowrap;
 }
 
+/* Objective tracker */
+.objective {
+  position: absolute;
+  left: 12px;
+  top: 84px;
+  max-width: 260px;
+  padding: 10px 12px;
+  background: rgba(10, 16, 32, 0.72);
+  border: 1px solid rgba(180, 120, 255, 0.35);
+  border-left: 3px solid #b04cff;
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+}
+.objective .otitle {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #c9a0ff;
+  font-weight: 700;
+}
+.objective .oname {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 2px 0;
+}
+.objective .oprog {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* Full-screen story / victory overlay */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  pointer-events: auto;
+  background: radial-gradient(ellipse at center, rgba(20, 10, 40, 0.82), rgba(4, 6, 16, 0.95));
+  backdrop-filter: blur(3px);
+}
+.overlay h1 {
+  font-size: clamp(30px, 7vw, 64px);
+  letter-spacing: 4px;
+  font-weight: 900;
+  color: #ffcf3f;
+  text-shadow: 0 4px 18px rgba(255, 140, 0, 0.5);
+  margin-bottom: 6px;
+}
+.overlay .sub {
+  color: #cfe0ff;
+  font-size: clamp(13px, 2.5vw, 18px);
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+.overlay p {
+  max-width: 620px;
+  color: #d7dcea;
+  font-size: clamp(12px, 2.3vw, 15px);
+  line-height: 1.55;
+  margin: 5px 0;
+}
+.overlay .begin {
+  margin-top: 22px;
+  padding: 14px 34px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #12203a;
+  background: linear-gradient(180deg, #ffe08a, #ffbf3f);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255, 180, 40, 0.4);
+}
+.overlay .begin:active { transform: scale(0.96); }
+
+/* Shadow King dialogue */
+.dialogue {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%) translateY(20px);
+  width: min(680px, 92vw);
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(30, 12, 46, 0.94), rgba(14, 8, 26, 0.94));
+  border: 1px solid rgba(176, 76, 255, 0.55);
+  border-radius: 12px;
+  box-shadow: 0 0 26px rgba(140, 50, 220, 0.45);
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 15;
+}
+.dialogue.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.dialogue .speaker {
+  color: #d08bff;
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.dialogue .text {
+  color: #ecdcff;
+  font-size: 14px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
 /* Class badge */
 .classbadge {
   position: absolute;

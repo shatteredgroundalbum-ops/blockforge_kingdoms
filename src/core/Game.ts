@@ -6,6 +6,9 @@ import { Enemy } from '../entities/Enemy';
 import { Input } from '../systems/Input';
 import { CameraController } from '../systems/CameraController';
 import { HUD } from '../ui/HUD';
+import { QuestSystem, type Quest } from './Quests';
+import { ShadowRift } from '../entities/ShadowRift';
+import { INTRO, SHADOW_KING_LINES } from './lore';
 
 const DAY_SKY = new THREE.Color(0x8fc7ff);
 const DUSK_SKY = new THREE.Color(0xff9a52);
@@ -33,6 +36,10 @@ export class Game {
   private waveRemaining = 0;
   private wasNight = false;
   private dayRegen = 0;
+
+  private quests: QuestSystem;
+  private rift: ShadowRift | null = null;
+  private paused = true;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -84,8 +91,21 @@ export class Game {
     this.state.inventory.stone = 2;
     this.state.notify();
 
+    this.quests = new QuestSystem(
+      this.state,
+      (quest) => this.activateQuest(quest),
+      () => this.onCampaignComplete(),
+    );
+
     window.addEventListener('resize', this.onResize);
-    this.hud.showBanner('DAY 1 — BUILD YOUR SETTLEMENT', false);
+
+    // Narrative intro; gameplay is paused until the player chooses to begin.
+    this.hud.showIntro(INTRO.world, INTRO.tagline, INTRO.lines, () => {
+      this.paused = false;
+      this.clock.getDelta(); // discard the long paused delta
+      this.activateQuest(this.quests.current!);
+      this.hud.showBanner('GREENHAVEN — REBUILD FROM THE RUINS', false);
+    });
   }
 
   start() {
@@ -107,6 +127,8 @@ export class Game {
   };
 
   private update(dt: number) {
+    if (this.paused) return;
+
     // Time of day + day/night transitions.
     const nightChanged = this.state.advance(dt);
     if (nightChanged) {
@@ -138,6 +160,20 @@ export class Game {
     // Enemies + combat.
     this.updateEnemies(dt);
 
+    // Shadow Rift (Blight nest) once revealed.
+    if (this.rift && !this.rift.sealed) {
+      this.rift.update(dt);
+      if (this.rift.tickSpawn(dt)) {
+        const a = Math.random() * Math.PI * 2;
+        this.spawnEnemyAt(this.rift.x + Math.cos(a) * 4, this.rift.z + Math.sin(a) * 4);
+      }
+    }
+
+    // Quest progression.
+    this.quests.update();
+    const q = this.quests.current;
+    if (q) this.hud.updateObjectiveProgress(q.progress(this.state));
+
     // Spawn management during night.
     if (this.state.isNight && this.waveRemaining > 0) {
       this.spawnTimer -= dt;
@@ -165,6 +201,22 @@ export class Game {
     this.hero.attack();
     const dir = this.hero.facing();
     let hit = false;
+
+    // Striking the Shadow Rift when close and facing it.
+    if (this.rift && !this.rift.sealed) {
+      const dx = this.rift.x - this.hero.x;
+      const dz = this.rift.z - this.hero.z;
+      const dist = Math.hypot(dx, dz);
+      const dot = (dx / (dist || 1)) * dir.x + (dz / (dist || 1)) * dir.z;
+      if (dist < this.rift.radius + 2.2 && dot > 0.1) {
+        hit = true;
+        if (this.rift.takeDamage(6)) {
+          this.state.riftSealed = true;
+          this.state.notify();
+          this.hud.showDialogue('THE SHADOW KING', SHADOW_KING_LINES.riftSealed, 10);
+        }
+      }
+    }
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const dx = e.x - this.hero.x;
@@ -250,11 +302,31 @@ export class Game {
   private spawnEnemy() {
     const angle = Math.random() * Math.PI * 2;
     const dist = 34 + Math.random() * 8;
-    const x = Math.cos(angle) * dist;
-    const z = Math.sin(angle) * dist;
+    this.spawnEnemyAt(Math.cos(angle) * dist, Math.sin(angle) * dist);
+  }
+
+  private spawnEnemyAt(x: number, z: number) {
     const e = new Enemy(x, z, this.state.day);
     this.enemies.push(e);
     this.scene.add(e.root);
+  }
+
+  private activateQuest(quest: Quest) {
+    this.hud.setObjective(quest.title, quest.progress(this.state));
+    // Reveal the Shadow Rift when its objective begins.
+    if (quest.id === 'seal' && !this.rift) {
+      this.rift = new ShadowRift(-16, -16);
+      this.scene.add(this.rift.root);
+      this.hud.showDialogue('THE SHADOW KING', SHADOW_KING_LINES.firstRift, 9);
+      this.hud.showBanner('A SHADOW RIFT HAS TORN OPEN', true);
+    }
+  }
+
+  private onCampaignComplete() {
+    this.hud.showVictory(
+      'RIFT SEALED',
+      'The Blight recedes from Greenhaven and the survivors breathe free. One wound of Eldoria is healed — four kingdoms and the buried capital still wait. This is where a world begins again.',
+    );
   }
 
   private beginNight() {
@@ -268,6 +340,8 @@ export class Game {
     if (!this.wasNight) return;
     this.wasNight = false;
     this.waveRemaining = 0;
+    this.state.nightsSurvived += 1;
+    this.state.notify();
     // Corrupted creatures retreat from sunlight.
     for (const e of this.enemies) {
       this.scene.remove(e.root);

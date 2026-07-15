@@ -12,6 +12,9 @@ export class HUD {
   private banner!: HTMLElement;
   private toast!: HTMLElement;
   private toastTimer = 0;
+  private objectiveEl!: HTMLElement;
+  private dialogueEl!: HTMLElement;
+  private dialogueTimer = 0;
 
   constructor(private state: GameState, private input: Input) {
     this.root = document.createElement('div');
@@ -56,6 +59,15 @@ export class HUD {
     this.toast = document.createElement('div');
     this.toast.className = 'toast';
     this.root.appendChild(this.toast);
+
+    this.objectiveEl = document.createElement('div');
+    this.objectiveEl.className = 'objective';
+    this.objectiveEl.style.display = 'none';
+    this.root.appendChild(this.objectiveEl);
+
+    this.dialogueEl = document.createElement('div');
+    this.dialogueEl.className = 'dialogue';
+    this.root.appendChild(this.dialogueEl);
 
     const cls = document.createElement('div');
     cls.className = 'classbadge';
@@ -151,10 +163,72 @@ export class HUD {
     setTimeout(() => this.banner.classList.remove('show'), 2600);
   }
 
+  setObjective(name: string, progress: string) {
+    this.objectiveEl.style.display = 'block';
+    this.objectiveEl.innerHTML = `<div class="otitle">OBJECTIVE</div><div class="oname"></div><div class="oprog"></div>`;
+    (this.objectiveEl.querySelector('.oname') as HTMLElement).textContent = name;
+    (this.objectiveEl.querySelector('.oprog') as HTMLElement).textContent = progress;
+  }
+
+  updateObjectiveProgress(progress: string) {
+    const el = this.objectiveEl.querySelector('.oprog') as HTMLElement | null;
+    if (el) el.textContent = progress;
+  }
+
+  showDialogue(speaker: string, text: string, seconds = 7) {
+    this.dialogueEl.innerHTML = `<div class="speaker"></div><div class="text"></div>`;
+    (this.dialogueEl.querySelector('.speaker') as HTMLElement).textContent = speaker;
+    (this.dialogueEl.querySelector('.text') as HTMLElement).textContent = `“${text}”`;
+    this.dialogueEl.classList.add('show');
+    this.dialogueTimer = seconds;
+  }
+
+  // Full-screen intro; invokes onBegin when the player starts.
+  showIntro(
+    world: string,
+    tagline: string,
+    lines: string[],
+    onBegin: () => void,
+  ) {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    const paras = lines.map((l) => `<p>${l}</p>`).join('');
+    overlay.innerHTML = `
+      <h1>BLOCKFORGE</h1>
+      <div class="sub">KINGDOMS · ${world}</div>
+      <div class="sub" style="color:#ffcf3f">${tagline}</div>
+      ${paras}
+      <button class="begin">BEGIN</button>`;
+    const btn = overlay.querySelector('.begin') as HTMLButtonElement;
+    btn.addEventListener('click', () => {
+      overlay.remove();
+      onBegin();
+    });
+    this.root.appendChild(overlay);
+  }
+
+  showVictory(title: string, body: string) {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `
+      <h1>${title}</h1>
+      <div class="sub">GREENHAVEN IS CLEANSED</div>
+      <p>${body}</p>
+      <button class="begin">CONTINUE</button>`;
+    (overlay.querySelector('.begin') as HTMLButtonElement).addEventListener('click', () =>
+      overlay.remove(),
+    );
+    this.root.appendChild(overlay);
+  }
+
   update(dt: number) {
     if (this.toastTimer > 0) {
       this.toastTimer -= dt;
       if (this.toastTimer <= 0) this.toast.classList.remove('show');
+    }
+    if (this.dialogueTimer > 0) {
+      this.dialogueTimer -= dt;
+      if (this.dialogueTimer <= 0) this.dialogueEl.classList.remove('show');
     }
   }
 
