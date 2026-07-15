@@ -5,7 +5,7 @@ import * as THREE from 'three';
 export class CameraController {
   yaw = Math.PI;
   pitch = 0.42;
-  distance = 9;
+  distance = 7.5;
 
   private targetPos = new THREE.Vector3();
   private currentPos = new THREE.Vector3(0, 6, 16);

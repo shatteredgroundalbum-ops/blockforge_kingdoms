@@ -195,8 +195,10 @@ export class VoxelCharacter {
       this.legR.rotation.x = -swing * amp;
       this.armL.rotation.x = -swing * amp * 0.8;
       this.armR.rotation.x = swing * amp * 0.8;
-      this.bob.position.y = Math.abs(swing2) * 0.06;
-      this.bob.rotation.y = swing * 0.05;
+      // A pronounced bob + slight roll so the gait reads even from behind.
+      this.bob.position.y = Math.abs(swing2) * 0.11;
+      this.bob.rotation.y = swing * 0.06;
+      this.bob.rotation.z = swing * 0.05;
     } else if (this.state === 'jump') {
       this.legL.rotation.x = -0.5;
       this.legR.rotation.x = 0.3;
@@ -204,6 +206,7 @@ export class VoxelCharacter {
       this.armR.rotation.x = -1.4;
       this.bob.position.y = 0;
       this.bob.rotation.y = 0;
+      this.bob.rotation.z = 0;
     } else {
       // idle breathing sway
       const idle = Math.sin(this.phase * 0.5);
@@ -213,6 +216,7 @@ export class VoxelCharacter {
       this.armR.rotation.x = -idle * 0.08;
       this.bob.position.y = idle * 0.02;
       this.bob.rotation.y = 0;
+      this.bob.rotation.z = 0;
       this.headPivot.rotation.y = Math.sin(this.phase * 0.3) * 0.15;
     }
 
