@@ -45,7 +45,17 @@ export class World {
     this.buildBorderMountains();
     this.buildWater();
     this.buildSettlement();
+    this.starterNodes();
     this.scatter();
+  }
+
+  // A handful of resource nodes right next to the spawn point so gathering
+  // is immediately reachable (the hero spawns near 0, 6).
+  private starterNodes() {
+    this.addRock(0, 3.2);
+    this.addTree(4, 8);
+    this.addTree(-4, 8);
+    this.addRock(5, 4);
   }
 
   private buildGround() {
@@ -293,7 +303,8 @@ export class World {
     return { x: nx, z: nz };
   }
 
-  // Find the nearest gatherable in front of the player within range.
+  // Find the best gatherable within range. Prefers whatever the player is
+  // facing, but auto-targets the nearest node otherwise (mobile-friendly).
   findGatherable(px: number, pz: number, dirX: number, dirZ: number, range: number): Gatherable | null {
     let best: Gatherable | null = null;
     let bestScore = -Infinity;
@@ -303,8 +314,9 @@ export class World {
       const dist = Math.hypot(dx, dz);
       if (dist > range) continue;
       const dot = (dx / (dist || 1)) * dirX + (dz / (dist || 1)) * dirZ;
-      if (dot < 0.2) continue;
-      const score = dot - dist * 0.05;
+      // Facing boosts a node's priority but is not required, so gathering is
+      // forgiving on touch controls.
+      const score = dot * 1.5 - dist;
       if (score > bestScore) {
         bestScore = score;
         best = g;

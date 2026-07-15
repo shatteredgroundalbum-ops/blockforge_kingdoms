@@ -61,8 +61,8 @@ export class Enemy {
       this.character.setLocomotion(0, true);
       if (this.attackCooldown <= 0) {
         this.character.triggerAttack();
-        dmg = 8;
-        this.attackCooldown = 1.2;
+        dmg = 6;
+        this.attackCooldown = 1.5;
       }
     }
 

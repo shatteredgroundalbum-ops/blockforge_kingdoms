@@ -36,7 +36,8 @@ export class Game {
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cap pixel ratio at 1: software WebGL (and low-end mobile) is fill-bound.
+    this.renderer.setPixelRatio(1);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -58,7 +59,7 @@ export class Game {
     this.scene.add(this.ambient);
     this.sun = new THREE.DirectionalLight(0xfff2d6, 1.6);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.mapSize.set(1024, 1024);
     this.sun.shadow.camera.near = 1;
     this.sun.shadow.camera.far = 120;
     const s = 55;
@@ -193,7 +194,7 @@ export class Game {
 
   private tryGather(showAnim: boolean): boolean {
     const dir = this.hero.facing();
-    const g = this.world.findGatherable(this.hero.x, this.hero.z, dir.x, dir.z, 2.6);
+    const g = this.world.findGatherable(this.hero.x, this.hero.z, dir.x, dir.z, 4.5);
     if (!g) return false;
     if (showAnim) this.hero.gather();
     const gained = this.world.hitGatherable(g, 1);
@@ -258,7 +259,7 @@ export class Game {
 
   private beginNight() {
     this.wasNight = true;
-    this.waveRemaining = 3 + this.state.day * 2;
+    this.waveRemaining = 2 + this.state.day * 2;
     this.spawnTimer = 0.5;
     this.hud.showBanner('NIGHT FALLS — DEFEND THE SETTLEMENT', true);
   }

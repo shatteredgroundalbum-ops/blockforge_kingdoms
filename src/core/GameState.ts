@@ -15,8 +15,8 @@ export class GameState {
   health = 100;
   maxHealth = 100;
 
-  // Day/night: normalized time of day in [0, 1). 0 = dawn.
-  timeOfDay = 0.15;
+  // Day/night: normalized time of day in [0, 1). 0.35 = bright mid-morning.
+  timeOfDay = 0.35;
   dayLength = 70; // seconds for a full day+night cycle
   day = 1;
 
