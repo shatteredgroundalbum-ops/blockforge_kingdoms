@@ -176,10 +176,9 @@ export class Chapter1 {
       case 'gather': {
         const wood = this.ctx.state.lifetimeWood - this.baseWood;
         const stone = this.ctx.state.lifetimeStone - this.baseStone;
-        this.ctx.hud.updateObjectiveProgress(
-          `Wood ${Math.min(wood, 3)}/3 · Stone ${Math.min(stone, 3)}/3`,
-        );
-        if (wood >= 3 && stone >= 3) {
+        const supplies = wood + stone;
+        this.ctx.hud.updateObjectiveProgress(`Supplies ${Math.min(supplies, 6)}/6`);
+        if (supplies >= 6) {
           this.ctx.hud.setObjective('Build a Campfire', 'Hold back the dark');
           this.ctx.hud.showNarration(CHAPTER1.buildNarration, 5);
           this.baseStructures = this.ctx.state.structuresBuilt;
