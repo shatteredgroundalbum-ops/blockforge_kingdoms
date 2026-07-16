@@ -19,6 +19,7 @@ export class Villager {
   z: number;
   yaw = 0;
   mode: Mode = 'waiting';
+  approach = false; // once true, a waiting survivor runs toward a nearby player
 
   private target = new THREE.Vector2();
   private idleTimer = 0;
@@ -52,11 +53,27 @@ export class Villager {
     this.target.set(this.campX + Math.cos(a) * r, this.campZ + Math.sin(a) * r);
   }
 
-  update(dt: number, heightAt: (x: number, z: number) => number) {
+  update(dt: number, heightAt: (x: number, z: number) => number, hero?: { x: number; z: number }) {
     let speed01 = 0;
     if (this.mode === 'waiting') {
-      // Gentle idle; face roughly toward the camp so they read as "waiting".
-      this.yaw = Math.atan2(this.campX - this.x, this.campZ - this.z);
+      if (this.approach && hero) {
+        const dx = hero.x - this.x;
+        const dz = hero.z - this.z;
+        const dist = Math.hypot(dx, dz);
+        // Once the player is in view, the survivor runs to them for rescue.
+        if (dist < 16 && dist > 0.4) {
+          const step = this.speed * 1.2 * dt;
+          this.x += (dx / dist) * step;
+          this.z += (dz / dist) * step;
+          this.yaw = Math.atan2(dx, dz);
+          speed01 = 0.8;
+        } else {
+          this.yaw = Math.atan2(dx, dz);
+        }
+      } else {
+        // Gentle idle; face roughly toward the camp so they read as "waiting".
+        this.yaw = Math.atan2(this.campX - this.x, this.campZ - this.z);
+      }
     } else {
       const dx = this.target.x - this.x;
       const dz = this.target.y - this.z;

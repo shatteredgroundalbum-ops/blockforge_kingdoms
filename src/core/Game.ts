@@ -405,6 +405,11 @@ export class Game {
 
   private activateQuest(quest: Quest) {
     this.hud.setObjective(quest.title, quest.progress(this.state));
+    // Survivors call out and run to the player once the rescue begins.
+    if (quest.id === 'rescue') {
+      for (const s of this.survivors) s.villager.approach = true;
+      this.hud.showBanner('SURVIVORS ARE NEARBY — REACH THEM', false);
+    }
     // Reveal the Shadow Rift when its objective begins.
     if (quest.id === 'seal' && !this.rift) {
       this.rift = new ShadowRift(0, -6);
@@ -426,9 +431,9 @@ export class Game {
 
   private spawnSurvivors() {
     const spots: [number, number][] = [
-      [14, -11],
-      [-14, 11],
-      [11, 17],
+      [7, 1],
+      [-7, 3],
+      [-1, 13],
     ];
     for (const [x, z] of spots) {
       const villager = new Villager(x, z, this.world.campCenter.x, this.world.campCenter.y);
@@ -444,10 +449,10 @@ export class Game {
   private updateSurvivors(dt: number, t: number) {
     for (let i = this.survivors.length - 1; i >= 0; i--) {
       const s = this.survivors[i];
-      s.villager.update(dt, (x, z) => this.world.heightAt(x, z));
+      s.villager.update(dt, (x, z) => this.world.heightAt(x, z), { x: this.hero.x, z: this.hero.z });
       s.beacon.update(t);
       const d = Math.hypot(s.villager.x - this.hero.x, s.villager.z - this.hero.z);
-      if (d < 5) {
+      if (d < 3.2) {
         // Rescue!
         s.villager.rescue();
         this.scene.remove(s.beacon.group);
