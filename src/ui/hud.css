@@ -395,6 +395,143 @@ body,
   color: #ffd95a;
 }
 
+/* Cinematic letterbox */
+.letterbox {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #000;
+  z-index: 30;
+  transition: height 0.6s ease;
+  pointer-events: none;
+}
+.letterbox.top { top: 0; }
+.letterbox.bottom { bottom: 0; }
+.letterbox.on { height: 12vh; }
+
+/* Fade overlay */
+.fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  z-index: 40;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+.fade.on { opacity: 1; }
+
+/* Title card */
+.titlecard {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.titlecard.on { opacity: 1; }
+.titlecard .ct {
+  font-size: clamp(28px, 6vw, 58px);
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: #f2e4c4;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9);
+}
+.titlecard .cs {
+  margin-top: 10px;
+  font-size: clamp(13px, 2.6vw, 20px);
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #c9a06a;
+  text-transform: uppercase;
+}
+
+/* Narration card */
+.narration {
+  position: absolute;
+  left: 50%;
+  bottom: 16vh;
+  transform: translateX(-50%);
+  max-width: 620px;
+  text-align: center;
+  color: #e6ddca;
+  font-size: clamp(14px, 2.6vw, 18px);
+  font-style: italic;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  z-index: 33;
+  pointer-events: none;
+  padding: 0 16px;
+}
+.narration.on { opacity: 1; }
+
+/* Interact prompt */
+.interact {
+  position: absolute;
+  left: 50%;
+  bottom: 40%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: rgba(10, 16, 32, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 33;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.interact.on { opacity: 1; }
+.interact b { color: #ffcf3f; }
+
+/* Cinematic dialogue (advance-on-click) */
+.cinedlg {
+  position: absolute;
+  left: 50%;
+  bottom: 15vh;
+  transform: translateX(-50%);
+  width: min(720px, 92vw);
+  padding: 16px 20px;
+  background: linear-gradient(180deg, rgba(18, 22, 36, 0.96), rgba(10, 12, 22, 0.96));
+  border: 1px solid rgba(200, 160, 106, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  z-index: 45;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.cinedlg.on { opacity: 1; }
+.cinedlg .who {
+  color: #d9b877;
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+.cinedlg .line {
+  color: #ece3d2;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.cinedlg .adv {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 11px;
+  color: #9a9384;
+}
+
 /* Class badge */
 .classbadge {
   position: absolute;

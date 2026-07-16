@@ -9,8 +9,9 @@ import { HUD } from '../ui/HUD';
 import { QuestSystem, type Quest } from './Quests';
 import { ShadowRift } from '../entities/ShadowRift';
 import { Villager } from '../entities/Villager';
-import { INTRO, SHADOW_KING_LINES, SETTLEMENT_TIERS, SURVIVOR_LINES } from './lore';
+import { SHADOW_KING_LINES, SETTLEMENT_TIERS, SURVIVOR_LINES } from './lore';
 import { createBeacon, createVerdantCrown, type Beacon, type Relic } from '../rendering/markers';
+import { Chapter1 } from './Chapter1';
 import { createSkyDome, type SkyDome } from '../rendering/env';
 import { createAtmosphere, type Atmosphere } from '../rendering/atmosphere';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -64,6 +65,7 @@ export class Game {
   private quests: QuestSystem;
   private rift: ShadowRift | null = null;
   private paused = true;
+  private chapter: Chapter1 | null = null;
 
   // Survivors to rescue, residents living in the camp, and the relic.
   private survivors: { villager: Villager; beacon: Beacon }[] = [];
@@ -160,17 +162,31 @@ export class Game {
       () => this.onCampaignComplete(),
     );
 
-    this.spawnSurvivors();
-
     window.addEventListener('resize', this.onResize);
 
-    // Narrative intro; gameplay is paused until the player chooses to begin.
-    this.hud.showIntro(INTRO.world, INTRO.tagline, INTRO.lines, () => {
-      this.paused = false;
-      this.clock.getDelta(); // discard the long paused delta
-      this.activateQuest(this.quests.current!);
-      this.hud.showBanner('GREENHAVEN — REBUILD FROM THE RUINS', false);
+    // Chapter One plays first as a scripted, cinematic sequence. When it
+    // completes, control hands off to the free-roam settlement/quest sandbox.
+    this.paused = false;
+    this.chapter = new Chapter1({
+      scene: this.scene,
+      camera: this.camera,
+      hero: this.hero,
+      world: this.world,
+      hud: this.hud,
+      cameraCtrl: this.cameraCtrl,
+      enemies: this.enemies,
+      state: this.state,
+      onComplete: () => this.beginChapterTwo(),
     });
+    this.chapter.start();
+  }
+
+  private beginChapterTwo() {
+    this.hero.x = 2;
+    this.hero.z = 5;
+    this.spawnSurvivors();
+    this.activateQuest(this.quests.current!);
+    this.hud.showBanner('CHAPTER TWO — REBUILD GREENHAVEN', false);
   }
 
   start() {
@@ -197,6 +213,11 @@ export class Game {
 
   private update(dt: number) {
     if (this.paused) return;
+
+    if (this.chapter && this.chapter.active) {
+      this.updateChapter(dt);
+      return;
+    }
 
     // Time of day + day/night transitions.
     const nightChanged = this.state.advance(dt);
@@ -276,6 +297,45 @@ export class Game {
     }
 
     this.world.updateCampfire(this.clock.elapsedTime, this.state.isNight ? 2.4 : 0);
+    this.hud.update(dt);
+  }
+
+  // Chapter One: the director controls flow; Game applies player/camera based on
+  // the director's lock/cinematic flags and runs shared world/enemy updates.
+  private updateChapter(dt: number) {
+    const chapter = this.chapter!;
+    const t = this.clock.elapsedTime;
+
+    chapter.update(dt, t);
+
+    const camDelta = this.input.consumeCameraDelta();
+    if (chapter.lockPlayer) {
+      // Freeze the hero (idle) and ignore actions during cinematics/dialogue.
+      this.hero.update(dt, 0, 0, this.cameraCtrl.yaw, false, this.world);
+      this.input.consumeActions();
+    } else {
+      if (!chapter.cinematic) this.cameraCtrl.rotate(camDelta.yaw, camDelta.pitch);
+      const running =
+        this.input.isHeld('dodge') || Math.hypot(this.input.moveX, this.input.moveY) > 0.85;
+      this.hero.update(dt, this.input.moveX, this.input.moveY, this.cameraCtrl.yaw, running, this.world);
+      for (const action of this.input.consumeActions()) {
+        if (action === 'jump') this.hero.jump();
+        else if (action === 'attack') this.doAttack();
+        else if (action === 'gather') this.doGather();
+        else if (action === 'build') this.doBuild();
+      }
+    }
+
+    if (!chapter.cinematic) {
+      this.cameraCtrl.fovTarget = 60;
+      this.cameraCtrl.update(dt, this.hero.x, this.hero.y, this.hero.z, this.world);
+    }
+
+    this.updateSky();
+    this.updateEnemies(dt);
+    this.world.update(t, dt, this.state.isNight);
+    this.atmosphere.update(dt, this.daylight, this.sunDirVec, this.camera.position);
+    this.world.updateCampfire(t, this.state.isNight ? 2.4 : 0);
     this.hud.update(dt);
   }
 

@@ -81,6 +81,46 @@ export const SETTLEMENT_TIERS = [
   { name: 'Fortified Town', pop: 6, structures: 5 },
 ];
 
+// Chapter One — Ashes of the Fallen.
+export const CHAPTER1 = {
+  title: 'CHAPTER ONE',
+  subtitle: 'Ashes of the Fallen',
+  openingNarration: [
+    'You climb the shattered ridge. The battle is over.',
+    'Below, your village burns. Nothing moves.',
+    'Only wind, and the smell of ash.',
+  ],
+  searchNarration: 'Search the ruins of your home. Find anyone still alive.',
+  elderRescue: [
+    '…help… please, over here…',
+    'Bless you. I thought I was the last soul left breathing.',
+    'They came out of the dark in the night — creatures no one had ever seen.',
+    'The defenders bought time enough for a few to flee into the forest.',
+    'Go. Find them. I will keep the fire while you can.',
+  ],
+  gatherNarration: 'Gather wood and stone. We must keep a fire through the night.',
+  buildNarration: 'Build a campfire before darkness falls.',
+  nightNarration: 'Whatever destroyed the village is still out there. Do not stray from the light.',
+  morningElder: [
+    'You lived through the night. Good.',
+    'Other settlements may yet stand. There is a refuge south, past the old bridge.',
+    'Take this — the woodcutter’s axe. He won’t be needing it now.',
+    'Go to them. Tell them they are not alone.',
+  ],
+  travelNarration: 'Follow the trail south to the refuge. Beware the corrupted ground.',
+  enemyNarration: 'A corrupted creature. Attack, dodge, and survive.',
+  crystalNarration: 'It dissolved into black ash, leaving a strange crystal. You have never seen its like.',
+  leader: [
+    'Stranger… you came from the north? Through all that smoke?',
+    'Did anyone else survive?',
+  ],
+  endingNarration: [
+    'Beyond the forest, another column of smoke rises. Then another. Then another.',
+    'This is not one village. It is the entire kingdom.',
+  ],
+  complete: 'CHAPTER ONE COMPLETE',
+};
+
 export const SURVIVOR_LINES = [
   'You came back for us… I thought the whole camp was lost.',
   'Thank you. I can still swing a hammer — put me to work.',

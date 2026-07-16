@@ -18,6 +18,17 @@ export class HUD {
   private dialogueTimer = 0;
   private settlementEl!: HTMLElement;
 
+  // Cinematic elements (lazily built for Chapter One).
+  private cinemaBuilt = false;
+  private letterboxes: HTMLElement[] = [];
+  private fadeEl!: HTMLElement;
+  private titleEl!: HTMLElement;
+  private narrationEl!: HTMLElement;
+  private interactEl!: HTMLElement;
+  private cineDlgEl!: HTMLElement;
+  private titleTimer = 0;
+  private narrationTimer = 0;
+
   constructor(private state: GameState, private input: Input) {
     this.root = document.createElement('div');
     this.root.className = 'hud';
@@ -227,6 +238,95 @@ export class HUD {
     this.root.appendChild(overlay);
   }
 
+  // --- Cinematic helpers (Chapter One) ---
+  private ensureCinemaEls() {
+    if (this.cinemaBuilt) return;
+    this.cinemaBuilt = true;
+    for (const side of ['top', 'bottom'] as const) {
+      const bar = document.createElement('div');
+      bar.className = `letterbox ${side}`;
+      this.root.appendChild(bar);
+      this.letterboxes.push(bar);
+    }
+    this.fadeEl = document.createElement('div');
+    this.fadeEl.className = 'fade';
+    this.root.appendChild(this.fadeEl);
+    this.titleEl = document.createElement('div');
+    this.titleEl.className = 'titlecard';
+    this.root.appendChild(this.titleEl);
+    this.narrationEl = document.createElement('div');
+    this.narrationEl.className = 'narration';
+    this.root.appendChild(this.narrationEl);
+    this.interactEl = document.createElement('div');
+    this.interactEl.className = 'interact';
+    this.root.appendChild(this.interactEl);
+    this.cineDlgEl = document.createElement('div');
+    this.cineDlgEl.className = 'cinedlg';
+    this.root.appendChild(this.cineDlgEl);
+  }
+
+  setLetterbox(on: boolean) {
+    this.ensureCinemaEls();
+    for (const b of this.letterboxes) b.classList.toggle('on', on);
+  }
+
+  fadeTo(black: boolean) {
+    this.ensureCinemaEls();
+    this.fadeEl.classList.toggle('on', black);
+  }
+
+  showTitleCard(title: string, subtitle: string, seconds: number) {
+    this.ensureCinemaEls();
+    this.titleEl.innerHTML = `<div class="ct">${title}</div><div class="cs">${subtitle}</div>`;
+    this.titleEl.classList.add('on');
+    this.titleTimer = seconds;
+  }
+
+  hideTitleCard() {
+    this.titleEl?.classList.remove('on');
+  }
+
+  showNarration(text: string, seconds: number) {
+    this.ensureCinemaEls();
+    this.narrationEl.textContent = text;
+    this.narrationEl.classList.add('on');
+    this.narrationTimer = seconds;
+  }
+
+  setInteractPrompt(text: string | null) {
+    this.ensureCinemaEls();
+    if (text) {
+      this.interactEl.innerHTML = text;
+      this.interactEl.classList.add('on');
+    } else {
+      this.interactEl.classList.remove('on');
+    }
+  }
+
+  // Multi-line dialogue advanced by clicking; calls onDone at the end.
+  showDialogueSequence(speaker: string, lines: string[], onDone: () => void) {
+    this.ensureCinemaEls();
+    let i = 0;
+    const render = () => {
+      this.cineDlgEl.innerHTML =
+        `<div class="who">${speaker}</div><div class="line">${lines[i]}</div>` +
+        `<div class="adv">${i < lines.length - 1 ? 'Click / tap to continue ▸' : 'Click / tap to close ▸'}</div>`;
+    };
+    const advance = () => {
+      i++;
+      if (i >= lines.length) {
+        this.cineDlgEl.classList.remove('on');
+        this.cineDlgEl.onclick = null;
+        onDone();
+      } else {
+        render();
+      }
+    };
+    this.cineDlgEl.onclick = advance;
+    render();
+    this.cineDlgEl.classList.add('on');
+  }
+
   update(dt: number) {
     if (this.toastTimer > 0) {
       this.toastTimer -= dt;
@@ -235,6 +335,14 @@ export class HUD {
     if (this.dialogueTimer > 0) {
       this.dialogueTimer -= dt;
       if (this.dialogueTimer <= 0) this.dialogueEl.classList.remove('show');
+    }
+    if (this.titleTimer > 0) {
+      this.titleTimer -= dt;
+      if (this.titleTimer <= 0) this.hideTitleCard();
+    }
+    if (this.narrationTimer > 0) {
+      this.narrationTimer -= dt;
+      if (this.narrationTimer <= 0) this.narrationEl?.classList.remove('on');
     }
   }
 
