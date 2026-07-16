@@ -714,11 +714,14 @@ export class World {
       ...this.gatherables.map((g) => g.collider),
     ];
     const step = 0.5;
+    // Extra clearance so the camera clears wide tree canopies (whose visual
+    // size is larger than their trunk collider).
+    const pad = 1.6;
     for (let d = 1.2; d <= maxDist; d += step) {
       const px = tx + dirX * d;
       const pz = tz + dirZ * d;
       for (const c of solids) {
-        if (this.pointInside(px, pz, c, 0.4)) {
+        if (this.pointInside(px, pz, c, pad)) {
           // Never pull closer than this, so the camera can't enter the hero.
           return Math.max(3.6, d - step);
         }
