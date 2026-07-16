@@ -31,6 +31,18 @@ export class GameState {
   riftHp = 0;
   riftMaxHp = 0;
 
+  // Settlement & leadership progression.
+  population = 1; // the player
+  survivorsRescued = 0;
+  reputation = 0;
+  settlementTier = 0; // index into SETTLEMENT_TIERS
+  relicRecovered = false;
+
+  addReputation(amount: number): void {
+    this.reputation += amount;
+    this.notify();
+  }
+
   // Populated by the HUD so systems can request a re-render on change.
   onChange: (() => void) | null = null;
 

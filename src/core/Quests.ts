@@ -21,6 +21,13 @@ export const QUEST_CHAIN: Quest[] = [
     isComplete: (s) => s.lifetimeWood >= 6 && s.lifetimeStone >= 3,
   },
   {
+    id: 'rescue',
+    title: 'Rescue the Survivors',
+    desc: 'Scattered survivors wait in the wilds. Reach them and bring them home.',
+    progress: (s) => `Survivors rescued ${s.survivorsRescued}/3`,
+    isComplete: (s) => s.survivorsRescued >= 3,
+  },
+  {
     id: 'fortify',
     title: 'Fortify the Camp',
     desc: 'Raise stone defenses before the Blight comes for the survivors at night.',
@@ -43,6 +50,13 @@ export const QUEST_CHAIN: Quest[] = [
         ? 'Rift sealed'
         : `Rift integrity ${Math.max(0, Math.ceil((s.riftHp / (s.riftMaxHp || 1)) * 100))}%`,
     isComplete: (s) => s.riftSealed,
+  },
+  {
+    id: 'relic',
+    title: 'Recover the Verdant Crown',
+    desc: 'The sealed rift has surrendered Greenhaven’s royal relic. Claim it.',
+    progress: (s) => (s.relicRecovered ? 'Relic recovered' : 'Approach the glowing relic'),
+    isComplete: (s) => s.relicRecovered,
   },
 ];
 

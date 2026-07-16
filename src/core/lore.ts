@@ -67,9 +67,26 @@ export const SHADOW_KING_LINES = {
     'So. Another survivor who mistakes stubbornness for destiny. Seal my rift if you can — you only delay what you cannot stop.',
   riftSealed:
     'You cleanse one wound and call it victory. The Heartfire is mine, builder. Every wall you raise proves my truth: they obey because you are strong.',
+  relic:
+    'The Verdant Crown. You gather my old jailers’ trinkets — how fitting. Bring me all five, and we will end this division together. They follow you now; freedom only gave them the Blight.',
   taunt:
     'They follow you now. Freedom gave them the Blight; you give them order. We are not so different.',
 };
+
+// Visible settlement stages (the camp grows as population + structures rise).
+export const SETTLEMENT_TIERS = [
+  { name: 'Survivor Camp', pop: 1, structures: 0 },
+  { name: 'Defended Outpost', pop: 2, structures: 2 },
+  { name: 'Growing Village', pop: 4, structures: 3 },
+  { name: 'Fortified Town', pop: 6, structures: 5 },
+];
+
+export const SURVIVOR_LINES = [
+  'You came back for us… I thought the whole camp was lost.',
+  'Thank you. I can still swing a hammer — put me to work.',
+  'The Hollow took the others. I’ll follow you, whatever comes.',
+  'Greenhaven isn’t dead while people like you still stand.',
+];
 
 export const INTRO = {
   world: 'ELDORIA',

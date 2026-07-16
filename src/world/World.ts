@@ -194,6 +194,104 @@ export class World {
     this.buildFence(-14, 4, -14, 12);
   }
 
+  readonly campCenter = new THREE.Vector2(0, 0);
+
+  // Spawn the new buildings that appear when the settlement reaches a tier, so
+  // growth is physically visible in the world.
+  applyTier(tier: number) {
+    if (tier === 1) {
+      this.addWatchtower(13, 3);
+      this.addTent(-7, 3, 0x9c6b3a);
+      this.addTent(7, -3, 0x6a8f4f);
+    } else if (tier === 2) {
+      this.addFarm(-4, -9);
+      this.buildHouse(13, -3, 0x8a5a34, 0x4a7d43);
+      this.addTent(-9, -2, 0x7a4f6a);
+    } else if (tier >= 3) {
+      this.addWatchtower(-13, 2);
+      this.addTent(4, -6, 0x9c6b3a);
+    }
+  }
+
+  private addTent(x: number, z: number, cloth: number) {
+    const g = new THREE.Group();
+    const canvasMat = new THREE.MeshStandardMaterial({ color: cloth, roughness: 0.9 });
+    const body = new THREE.Mesh(new THREE.ConeGeometry(1.5, 2.2, 4), canvasMat);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    body.rotation.y = Math.PI / 4;
+    body.position.y = 1.1;
+    g.add(body);
+    const pole = box(0.1, 2.6, 0.1, 0x4a3320);
+    pole.position.y = 1.3;
+    g.add(pole);
+    g.position.set(x, this.heightAt(x, z), z);
+    this.root.add(g);
+    this.staticColliders.push({ kind: 'circle', x, z, r: 1.4 });
+  }
+
+  private addWatchtower(x: number, z: number) {
+    const g = new THREE.Group();
+    for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+      const leg = box(0.3, 6, 0.3, 0x6b4a2f);
+      leg.position.set(dx * 1.0, 3, dz * 1.0);
+      g.add(leg);
+    }
+    const platform = box(2.8, 0.4, 2.8, 0x7a5230);
+    platform.position.y = 6;
+    g.add(platform);
+    const rail = box(2.8, 0.6, 0.2, 0x6b4a2f);
+    rail.position.set(0, 6.5, 1.3);
+    g.add(rail);
+    for (let i = 0; i < 3; i++) {
+      const r = box(3.0 - i * 0.8, 0.5, 3.0 - i * 0.8, 0x9c3b2f);
+      r.position.y = 6.8 + i * 0.5;
+      g.add(r);
+    }
+    const beacon = box(0.4, 0.4, 0.4, 0xffce7a);
+    const bm = beacon.material as THREE.MeshStandardMaterial;
+    bm.emissive.set(0xffa53a);
+    bm.emissiveIntensity = 2.2;
+    beacon.position.y = 6.4;
+    g.add(beacon);
+    const light = new THREE.PointLight(0xffb45a, 0, 12, 2);
+    light.position.y = 6.4;
+    g.add(light);
+    this.lanterns.push({ light, base: 1.3 });
+    g.position.set(x, this.heightAt(x, z), z);
+    this.root.add(g);
+    this.staticColliders.push({ kind: 'circle', x, z, r: 1.6 });
+  }
+
+  private addFarm(x: number, z: number) {
+    const g = new THREE.Group();
+    const soil = box(6, 0.3, 5, 0x5a3f26, 0.95);
+    soil.position.y = 0.15;
+    soil.receiveShadow = true;
+    g.add(soil);
+    for (let row = -2; row <= 2; row++) {
+      const furrow = box(5.6, 0.12, 0.5, 0x3f2c18);
+      furrow.position.set(0, 0.32, row * 0.9);
+      g.add(furrow);
+      for (let c = -2; c <= 2; c++) {
+        const crop = box(0.2, 0.5 + Math.random() * 0.3, 0.2, 0x6db83f);
+        crop.position.set(c * 1.1, 0.5, row * 0.9);
+        g.add(crop);
+      }
+    }
+    // scarecrow
+    const post = box(0.14, 1.6, 0.14, 0x6b4a2f);
+    post.position.set(2.6, 0.9, 0);
+    const arms = box(1.2, 0.14, 0.14, 0x6b4a2f);
+    arms.position.set(2.6, 1.3, 0);
+    const head = box(0.4, 0.4, 0.4, 0xcaa64a);
+    head.position.set(2.6, 1.8, 0);
+    g.add(post, arms, head);
+    g.position.set(x, this.heightAt(x, z), z);
+    this.root.add(g);
+    this.staticColliders.push({ kind: 'box', minX: x - 3, maxX: x + 3, minZ: z - 2.6, maxZ: z + 2.6 });
+  }
+
   private addSmoke(x: number, y: number, z: number, count: number, spread: number) {
     const s = new SmokeEmitter(x, y, z, count, spread);
     this.smoke.push(s);

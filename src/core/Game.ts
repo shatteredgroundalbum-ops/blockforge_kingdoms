@@ -8,7 +8,9 @@ import { CameraController } from '../systems/CameraController';
 import { HUD } from '../ui/HUD';
 import { QuestSystem, type Quest } from './Quests';
 import { ShadowRift } from '../entities/ShadowRift';
-import { INTRO, SHADOW_KING_LINES } from './lore';
+import { Villager } from '../entities/Villager';
+import { INTRO, SHADOW_KING_LINES, SETTLEMENT_TIERS, SURVIVOR_LINES } from './lore';
+import { createBeacon, createVerdantCrown, type Beacon, type Relic } from '../rendering/markers';
 import { createSkyDome, type SkyDome } from '../rendering/env';
 import { createAtmosphere, type Atmosphere } from '../rendering/atmosphere';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -62,6 +64,12 @@ export class Game {
   private quests: QuestSystem;
   private rift: ShadowRift | null = null;
   private paused = true;
+
+  // Survivors to rescue, residents living in the camp, and the relic.
+  private survivors: { villager: Villager; beacon: Beacon }[] = [];
+  private residents: Villager[] = [];
+  private relic: Relic | null = null;
+  private relicBeacon: Beacon | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -152,6 +160,8 @@ export class Game {
       () => this.onCampaignComplete(),
     );
 
+    this.spawnSurvivors();
+
     window.addEventListener('resize', this.onResize);
 
     // Narrative intro; gameplay is paused until the player chooses to begin.
@@ -235,6 +245,12 @@ export class Game {
       }
     }
 
+    // Survivors, residents, relic, settlement growth.
+    this.updateSurvivors(dt, t);
+    for (const r of this.residents) r.update(dt, (x, z) => this.world.heightAt(x, z));
+    this.updateRelic(t);
+    this.updateSettlementTier();
+
     // Quest progression.
     this.quests.update();
     const q = this.quests.current;
@@ -300,6 +316,7 @@ export class Game {
       if (e.takeDamage(7)) {
         this.state.enemiesDefeated++;
         this.state.addResource('gold', 5);
+        this.state.addReputation(3);
         this.hud.showToast('+5 gold');
       }
     }
@@ -349,6 +366,7 @@ export class Game {
     const bz = this.hero.z + dir.z * 2.2;
     this.world.addStructure(bx, bz);
     this.state.structuresBuilt++;
+    this.state.addReputation(5);
     this.hud.showToast('Defense built!');
   }
 
@@ -401,9 +419,97 @@ export class Game {
 
   private onCampaignComplete() {
     this.hud.showVictory(
-      'RIFT SEALED',
-      'The Blight recedes from Greenhaven and the survivors breathe free. One wound of Eldoria is healed — four kingdoms and the buried capital still wait. This is where a world begins again.',
+      'GREENHAVEN RISES',
+      'The rift is sealed, the Verdant Crown recovered, and survivors are rebuilding a home from the ashes. One relic of five is claimed — Stoneguard, Frostmere, Sunscar, and Emberfall still wait beyond the hills. You began with nothing. You are becoming a leader.',
     );
+  }
+
+  private spawnSurvivors() {
+    const spots: [number, number][] = [
+      [14, -11],
+      [-14, 11],
+      [11, 17],
+    ];
+    for (const [x, z] of spots) {
+      const villager = new Villager(x, z, this.world.campCenter.x, this.world.campCenter.y);
+      villager.update(0, (vx, vz) => this.world.heightAt(vx, vz));
+      this.scene.add(villager.root);
+      const beacon = createBeacon(0x6fdcff);
+      beacon.group.position.set(x, this.world.heightAt(x, z), z);
+      this.scene.add(beacon.group);
+      this.survivors.push({ villager, beacon });
+    }
+  }
+
+  private updateSurvivors(dt: number, t: number) {
+    for (let i = this.survivors.length - 1; i >= 0; i--) {
+      const s = this.survivors[i];
+      s.villager.update(dt, (x, z) => this.world.heightAt(x, z));
+      s.beacon.update(t);
+      const d = Math.hypot(s.villager.x - this.hero.x, s.villager.z - this.hero.z);
+      if (d < 5) {
+        // Rescue!
+        s.villager.rescue();
+        this.scene.remove(s.beacon.group);
+        this.residents.push(s.villager);
+        this.survivors.splice(i, 1);
+        this.state.survivorsRescued += 1;
+        this.state.population += 1;
+        this.state.addReputation(15);
+        this.hud.showDialogue(
+          'SURVIVOR',
+          SURVIVOR_LINES[this.state.survivorsRescued % SURVIVOR_LINES.length],
+          5,
+        );
+        this.hud.showToast('Survivor rescued!');
+      }
+    }
+  }
+
+  private updateRelic(t: number) {
+    // Reveal the Verdant Crown once the rift is sealed.
+    if (this.state.riftSealed && !this.relic && !this.state.relicRecovered) {
+      this.relic = createVerdantCrown();
+      const rx = this.rift ? this.rift.x : 0;
+      const rz = this.rift ? this.rift.z : -6;
+      this.relic.group.userData.baseY = this.world.heightAt(rx, rz);
+      this.relic.group.position.set(rx, this.world.heightAt(rx, rz), rz);
+      this.scene.add(this.relic.group);
+      this.relicBeacon = createBeacon(0x8fffa0);
+      this.relicBeacon.group.position.set(rx, this.world.heightAt(rx, rz), rz);
+      this.scene.add(this.relicBeacon.group);
+      this.hud.showBanner('THE VERDANT CROWN REMAINS', false);
+    }
+    if (this.relic) {
+      this.relic.update(t);
+      this.relicBeacon?.update(t);
+      if (!this.state.relicRecovered) {
+        const rx = this.relic.group.position.x;
+        const rz = this.relic.group.position.z;
+        if (Math.hypot(rx - this.hero.x, rz - this.hero.z) < 4.5) {
+          this.state.relicRecovered = true;
+          this.state.addReputation(40);
+          this.state.notify();
+          if (this.relicBeacon) this.scene.remove(this.relicBeacon.group);
+          this.scene.remove(this.relic.group);
+          this.hud.showDialogue('THE SHADOW KING', SHADOW_KING_LINES.relic, 11);
+          this.hud.showToast('Verdant Crown recovered!');
+        }
+      }
+    }
+  }
+
+  private updateSettlementTier() {
+    const next = this.state.settlementTier + 1;
+    if (next < SETTLEMENT_TIERS.length) {
+      const tier = SETTLEMENT_TIERS[next];
+      if (this.state.population >= tier.pop && this.state.structuresBuilt >= tier.structures) {
+        this.state.settlementTier = next;
+        this.world.applyTier(next);
+        this.state.notify();
+        this.hud.showBanner(`SETTLEMENT GROWS — ${tier.name.toUpperCase()}`, false);
+      }
+    }
   }
 
   private beginNight() {

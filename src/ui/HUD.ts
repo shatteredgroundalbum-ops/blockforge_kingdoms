@@ -1,5 +1,6 @@
 import type { GameState } from '../core/GameState';
 import type { Input } from '../systems/Input';
+import { SETTLEMENT_TIERS } from '../core/lore';
 
 // Builds the on-screen HUD (resource bar, health, day badge) and the mobile
 // touch controls (virtual joystick + action buttons), wiring them into Input.
@@ -15,6 +16,7 @@ export class HUD {
   private objectiveEl!: HTMLElement;
   private dialogueEl!: HTMLElement;
   private dialogueTimer = 0;
+  private settlementEl!: HTMLElement;
 
   constructor(private state: GameState, private input: Input) {
     this.root = document.createElement('div');
@@ -68,6 +70,10 @@ export class HUD {
     this.dialogueEl = document.createElement('div');
     this.dialogueEl.className = 'dialogue';
     this.root.appendChild(this.dialogueEl);
+
+    this.settlementEl = document.createElement('div');
+    this.settlementEl.className = 'settlement';
+    this.root.appendChild(this.settlementEl);
 
     const cls = document.createElement('div');
     cls.className = 'classbadge';
@@ -240,5 +246,12 @@ export class HUD {
     this.healthFill.style.width = `${(this.state.health / this.state.maxHealth) * 100}%`;
     this.dayEl.textContent = `Day ${this.state.day}`;
     this.phaseEl.textContent = this.state.isNight ? 'NIGHT' : 'DAY';
+
+    const tier = SETTLEMENT_TIERS[this.state.settlementTier]?.name ?? 'Survivor Camp';
+    const relic = this.state.relicRecovered ? '<span class="relic">◆ Verdant Crown</span>' : '';
+    this.settlementEl.innerHTML =
+      `<div class="stier">${tier}</div>` +
+      `<div class="srow"><span>👥 ${this.state.population}</span><span>★ ${this.state.reputation}</span></div>` +
+      relic;
   }
 }

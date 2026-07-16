@@ -360,6 +360,41 @@ body,
   font-style: italic;
 }
 
+/* Settlement panel */
+.settlement {
+  position: absolute;
+  left: 12px;
+  bottom: 210px;
+  min-width: 150px;
+  padding: 8px 12px;
+  background: rgba(10, 16, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid #5fd06a;
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+}
+.settlement .stier {
+  font-size: 13px;
+  font-weight: 800;
+  color: #a7e6ad;
+  letter-spacing: 0.5px;
+}
+.settlement .srow {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 3px;
+  opacity: 0.92;
+}
+.settlement .relic {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffd95a;
+}
+
 /* Class badge */
 .classbadge {
   position: absolute;
