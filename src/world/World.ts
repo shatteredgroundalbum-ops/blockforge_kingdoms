@@ -621,7 +621,8 @@ export class World {
       const pz = tz + dirZ * d;
       for (const c of solids) {
         if (this.pointInside(px, pz, c, 0.4)) {
-          return Math.max(1.6, d - step);
+          // Never pull closer than this, so the camera can't enter the hero.
+          return Math.max(3.6, d - step);
         }
       }
     }
