@@ -207,10 +207,15 @@ export class Game {
       const dx = this.rift.x - this.hero.x;
       const dz = this.rift.z - this.hero.z;
       const dist = Math.hypot(dx, dz);
-      const dot = (dx / (dist || 1)) * dir.x + (dz / (dist || 1)) * dir.z;
-      if (dist < this.rift.radius + 2.2 && dot > 0.1) {
+      // The rift is a large, stationary story target that erupts beside the
+      // camp: any strike from within the settlement/corruption area counts,
+      // regardless of facing.
+      if (dist < 13) {
         hit = true;
-        if (this.rift.takeDamage(6)) {
+        const sealed = this.rift.takeDamage(6);
+        this.state.riftHp = this.rift.hp;
+        this.state.notify();
+        if (sealed) {
           this.state.riftSealed = true;
           this.state.notify();
           this.hud.showDialogue('THE SHADOW KING', SHADOW_KING_LINES.riftSealed, 10);
@@ -315,7 +320,9 @@ export class Game {
     this.hud.setObjective(quest.title, quest.progress(this.state));
     // Reveal the Shadow Rift when its objective begins.
     if (quest.id === 'seal' && !this.rift) {
-      this.rift = new ShadowRift(-16, -16);
+      this.rift = new ShadowRift(0, -6);
+      this.state.riftHp = this.rift.hp;
+      this.state.riftMaxHp = this.rift.maxHp;
       this.scene.add(this.rift.root);
       this.hud.showDialogue('THE SHADOW KING', SHADOW_KING_LINES.firstRift, 9);
       this.hud.showBanner('A SHADOW RIFT HAS TORN OPEN', true);

@@ -10,8 +10,8 @@ export class ShadowRift {
   readonly z: number;
   readonly radius = 2.2;
 
-  hp = 60;
-  maxHp = 60;
+  hp = 48;
+  maxHp = 48;
   sealed = false;
 
   private shards: THREE.Mesh[] = [];

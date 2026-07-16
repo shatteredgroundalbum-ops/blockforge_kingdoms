@@ -51,11 +51,15 @@ export class World {
 
   // A handful of resource nodes right next to the spawn point so gathering
   // is immediately reachable (the hero spawns near 0, 6).
+  // A tight cluster of resource nodes ringing the spawn point so the opening
+  // "salvage" objective is reachable without hunting across the map. All sit
+  // within gather range of the spawn (~0, 6).
   private starterNodes() {
-    this.addRock(0, 3.2);
-    this.addTree(4, 8);
-    this.addTree(-4, 8);
-    this.addRock(5, 4);
+    this.addTree(2.6, 7.6);
+    this.addTree(-2.6, 7.6);
+    this.addTree(2.6, 4.4);
+    this.addRock(-2.6, 4.4);
+    this.addRock(0, 8.7);
   }
 
   private buildGround() {
@@ -334,7 +338,7 @@ export class World {
       this.root.remove(g.group);
       const idx = this.gatherables.indexOf(g);
       if (idx >= 0) this.gatherables.splice(idx, 1);
-      return g.resource === 'wood' ? 3 : 2;
+      return g.resource === 'wood' ? 3 : 3;
     }
     return 1;
   }

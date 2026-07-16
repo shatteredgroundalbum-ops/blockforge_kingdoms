@@ -10,8 +10,11 @@ to a single WebGL canvas; the HUD/touch controls are plain DOM over the canvas.
 ## Project layout
 
 - `src/main.ts` — entry point.
-- `src/core/Game.ts` — main loop, renderer, lighting, day/night, spawning, combat glue.
-- `src/core/GameState.ts` — resources, health, day/night clock.
+- `src/core/Game.ts` — main loop, renderer, lighting, day/night, spawning, combat glue, quest/rift wiring.
+- `src/core/GameState.ts` — resources, health, day/night clock, quest counters.
+- `src/core/lore.ts` — narrative source of truth (world/kingdoms/factions/relics/Shadow King lines/intro).
+- `src/core/Quests.ts` — linear early-game objective chain + `QuestSystem`.
+- `src/entities/ShadowRift.ts` — the Blight rift (Hollow nest) the player seals.
 - `src/entities/VoxelCharacter.ts` — the articulated, rigged voxel humanoid + procedural animations (idle/walk/run/jump/attack/gather). Reused by hero and enemies.
 - `src/entities/Hero.ts` / `Enemy.ts` — player and corrupted-creature entities.
 - `src/world/World.ts` — terrain, trees/rocks (gatherables), water, settlement, colliders.
@@ -44,11 +47,21 @@ Use `pnpm` (there is a `pnpm-lock.yaml`).
   a few hundred ms apart (a filmstrip of ~5 frames shows the alternating
   stride), or drive `VoxelCharacter.update()` headlessly and confirm limb
   rotations oscillate.
-- **Day/night is time-driven** (`GameState.timeOfDay`, `dayLength ≈ 70s`). Night
+- **Day/night is time-driven** (`GameState.timeOfDay`, `dayLength ≈ 48s`). Night
   (and enemy waves) begins around `timeOfDay > 0.72`; from the default start
-  (`0.35`) that is ~26s of real time. To exercise night combat quickly during
-  testing, temporarily raise the initial `timeOfDay` (e.g. `0.66`) and revert it
-  afterward — do not commit that change.
+  (`0.35`) that is ~18s of real time. To exercise night combat or the story
+  chain quickly during testing, temporarily raise the initial `timeOfDay` (e.g.
+  `0.66`) and/or shorten `dayLength`, then revert — do not commit those changes.
+- **Story mode flow:** the game starts paused behind a narrative intro overlay
+  (`HUD.showIntro`); gameplay begins on "BEGIN". A linear `QuestSystem` drives
+  the arc: salvage → fortify → survive the night → seal the Shadow Rift. The
+  rift is revealed only after the first night is survived, erupts near the camp,
+  spawns Hollow, and is destroyed by attacking near it (large forgiving strike
+  radius, no facing requirement) — sealing it triggers the victory overlay.
+- **Objectives track *lifetime* gathered wood/stone** (`lifetimeWood`/`Stone`),
+  not current inventory, since inventory is spent on building. Starter resource
+  nodes are clustered at the spawn so the opening objective is reachable without
+  hunting.
 - **Gathering auto-targets** the nearest resource node within range (facing only
   boosts priority), so it is forgiving on touch; a few starter trees/rocks are
   placed right next to the spawn point for immediate testing.

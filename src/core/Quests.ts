@@ -17,8 +17,8 @@ export const QUEST_CHAIN: Quest[] = [
     id: 'salvage',
     title: 'Salvage the Ruins',
     desc: 'Gather timber and stone from the wilds of Greenhaven to begin rebuilding.',
-    progress: (s) => `Wood ${Math.min(s.lifetimeWood, 8)}/8 · Stone ${Math.min(s.lifetimeStone, 5)}/5`,
-    isComplete: (s) => s.lifetimeWood >= 8 && s.lifetimeStone >= 5,
+    progress: (s) => `Wood ${Math.min(s.lifetimeWood, 6)}/6 · Stone ${Math.min(s.lifetimeStone, 3)}/3`,
+    isComplete: (s) => s.lifetimeWood >= 6 && s.lifetimeStone >= 3,
   },
   {
     id: 'fortify',
@@ -38,7 +38,10 @@ export const QUEST_CHAIN: Quest[] = [
     id: 'seal',
     title: 'Seal the Shadow Rift',
     desc: 'A Shadow Rift has torn open. Destroy it to cleanse Greenhaven of the Blight.',
-    progress: (s) => (s.riftSealed ? 'Rift sealed' : 'Strike the rift until it collapses'),
+    progress: (s) =>
+      s.riftSealed
+        ? 'Rift sealed'
+        : `Rift integrity ${Math.max(0, Math.ceil((s.riftHp / (s.riftMaxHp || 1)) * 100))}%`,
     isComplete: (s) => s.riftSealed,
   },
 ];

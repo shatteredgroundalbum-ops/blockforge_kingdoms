@@ -17,7 +17,7 @@ export class GameState {
 
   // Day/night: normalized time of day in [0, 1). 0.35 = bright mid-morning.
   timeOfDay = 0.35;
-  dayLength = 70; // seconds for a full day+night cycle
+  dayLength = 48; // seconds for a full day+night cycle
   day = 1;
 
   structuresBuilt = 0;
@@ -28,6 +28,8 @@ export class GameState {
   lifetimeStone = 0;
   nightsSurvived = 0;
   riftSealed = false;
+  riftHp = 0;
+  riftMaxHp = 0;
 
   // Populated by the HUD so systems can request a re-render on change.
   onChange: (() => void) | null = null;
