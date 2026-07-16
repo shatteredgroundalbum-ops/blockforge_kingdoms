@@ -606,6 +606,28 @@ export class World {
     return { x: nx, z: nz };
   }
 
+  // Camera collision: march from the look-target outward along the camera's
+  // horizontal direction and stop before the view passes through a solid object
+  // (trees, rocks, buildings, structures). Returns the allowed distance.
+  cameraDistanceLimit(tx: number, tz: number, dirX: number, dirZ: number, maxDist: number): number {
+    const solids: ColliderShape[] = [
+      ...this.staticColliders,
+      ...this.structures.map((s) => s.collider),
+      ...this.gatherables.map((g) => g.collider),
+    ];
+    const step = 0.5;
+    for (let d = 1.2; d <= maxDist; d += step) {
+      const px = tx + dirX * d;
+      const pz = tz + dirZ * d;
+      for (const c of solids) {
+        if (this.pointInside(px, pz, c, 0.4)) {
+          return Math.max(1.6, d - step);
+        }
+      }
+    }
+    return maxDist;
+  }
+
   // Find the best gatherable within range. Prefers whatever the player is
   // facing, but auto-targets the nearest node otherwise (mobile-friendly).
   findGatherable(px: number, pz: number, dirX: number, dirZ: number, range: number): Gatherable | null {

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 interface TerrainSampler {
   heightAt(x: number, z: number): number;
+  cameraDistanceLimit?: (tx: number, tz: number, dirX: number, dirZ: number, maxDist: number) => number;
 }
 
 // Orbiting third-person follow camera with smooth follow, dynamic FOV, combat
@@ -33,12 +34,27 @@ export class CameraController {
     // Look a bit above the character's feet.
     this.targetPos.set(focusX, focusY + 1.4, focusZ);
 
-    const horiz = Math.cos(this.pitch) * this.distance;
-    const height = Math.sin(this.pitch) * this.distance;
+    // Camera collision: pull in the distance if the view is blocked by objects.
+    let dist = this.distance;
+    const dirX = -Math.sin(this.yaw);
+    const dirZ = -Math.cos(this.yaw);
+    if (terrain?.cameraDistanceLimit) {
+      const limit = terrain.cameraDistanceLimit(
+        this.targetPos.x,
+        this.targetPos.z,
+        dirX,
+        dirZ,
+        this.distance,
+      );
+      dist = Math.min(dist, limit);
+    }
+
+    const horiz = Math.cos(this.pitch) * dist;
+    const height = Math.sin(this.pitch) * dist;
     const desired = new THREE.Vector3(
-      this.targetPos.x - Math.sin(this.yaw) * horiz,
+      this.targetPos.x + dirX * horiz,
       this.targetPos.y + height,
-      this.targetPos.z - Math.cos(this.yaw) * horiz,
+      this.targetPos.z + dirZ * horiz,
     );
 
     // Terrain-aware collision: never let the camera sink below the ground.
