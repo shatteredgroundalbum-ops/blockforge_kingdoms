@@ -69,7 +69,7 @@ export class Enemy {
     this.attackCooldown = Math.max(0, this.attackCooldown - dt);
     this.yaw = Math.atan2(dx, dz);
     this.root.rotation.y = this.yaw;
-    this.root.position.set(this.x, 0, this.z);
+    this.root.position.set(this.x, world.heightAt(this.x, this.z), this.z);
     this.character.update(dt);
     return dmg;
   }

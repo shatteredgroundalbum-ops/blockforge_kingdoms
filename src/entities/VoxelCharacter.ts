@@ -21,6 +21,8 @@ export interface CharacterOptions {
   scale?: number;
   hasHair?: boolean;
   hasScarf?: boolean;
+  hasCape?: boolean;
+  armor?: boolean;
   weapon?: 'sword' | 'none' | 'claw';
 }
 
@@ -52,6 +54,7 @@ export class VoxelCharacter {
   private legL = new THREE.Group();
   private legR = new THREE.Group();
   private scarf?: THREE.Mesh;
+  private capeSegments: THREE.Group[] = [];
 
   private phase = 0;
   private attackTimer = 0;
@@ -101,9 +104,35 @@ export class VoxelCharacter {
       group.position.set(dx, 1.28, 0);
       const upper = box(0.2, 0.4, 0.24, p.shirt);
       upper.position.y = -0.2;
-      const hand = box(0.22, 0.22, 0.26, p.skin);
-      hand.position.y = -0.48;
+      // Bracer (armored forearm).
+      if (this.opts.armor) {
+        const bracer = box(0.24, 0.24, 0.28, 0x9aa0a7);
+        (bracer.material as THREE.MeshStandardMaterial).metalness = 0.6;
+        (bracer.material as THREE.MeshStandardMaterial).roughness = 0.4;
+        bracer.position.y = -0.4;
+        group.add(bracer);
+      }
+      const hand = box(0.22, 0.2, 0.26, p.skin);
+      hand.position.y = -0.5;
       group.add(upper, hand);
+      // Fingers (individual, not mitten).
+      for (let f = -1; f <= 1; f++) {
+        const finger = box(0.05, 0.12, 0.07, p.skin);
+        finger.position.set(f * 0.07, -0.64, 0.08);
+        group.add(finger);
+      }
+      const thumb = box(0.05, 0.1, 0.06, p.skin);
+      thumb.position.set(isRight ? -0.12 : 0.12, -0.58, 0.05);
+      group.add(thumb);
+      // Pauldron (shoulder armor).
+      if (this.opts.armor) {
+        const pauldron = box(0.34, 0.22, 0.34, 0xb7bec6);
+        const pm = pauldron.material as THREE.MeshStandardMaterial;
+        pm.metalness = 0.65;
+        pm.roughness = 0.35;
+        pauldron.position.y = 0.02;
+        group.add(pauldron);
+      }
       this.bob.add(group);
 
       if (isRight && this.opts.weapon === 'sword') {
@@ -149,11 +178,25 @@ export class VoxelCharacter {
     }
 
     if (this.opts.hasHair) {
-      const hairTop = box(0.5, 0.16, 0.5, p.hair);
-      hairTop.position.y = 0.46;
-      const hairBack = box(0.5, 0.34, 0.14, p.hair);
-      hairBack.position.set(0, 0.28, -0.2);
-      this.headPivot.add(hairTop, hairBack);
+      // Multi-layer voxel hair.
+      const hairTop = box(0.52, 0.14, 0.52, p.hair);
+      hairTop.position.y = 0.47;
+      const hairTuft = box(0.3, 0.12, 0.3, p.hair);
+      hairTuft.position.set(0.05, 0.56, 0.08);
+      const hairBack = box(0.52, 0.4, 0.16, p.hair);
+      hairBack.position.set(0, 0.26, -0.22);
+      this.headPivot.add(hairTop, hairTuft, hairBack);
+      for (const dx of [-0.28, 0.28]) {
+        const side = box(0.1, 0.34, 0.5, p.hair);
+        side.position.set(dx, 0.26, 0);
+        this.headPivot.add(side);
+      }
+      // Brow adds a touch of expression.
+      for (const dx of [-0.1, 0.1]) {
+        const brow = box(0.13, 0.04, 0.04, p.hair);
+        brow.position.set(dx, 0.33, 0.23);
+        this.headPivot.add(brow);
+      }
     }
     this.bob.add(this.headPivot);
 
@@ -161,10 +204,37 @@ export class VoxelCharacter {
       this.scarf = box(0.5, 0.16, 0.42, p.accent);
       this.scarf.position.y = 1.28;
       this.bob.add(this.scarf);
-      const tail = box(0.18, 0.5, 0.14, p.accent);
-      tail.position.set(-0.18, 1.02, -0.22);
-      tail.rotation.x = 0.2;
-      this.bob.add(tail);
+    }
+
+    // Chest armor / tunic layering.
+    if (this.opts.armor) {
+      const chest = box(0.68, 0.5, 0.42, 0xb7bec6);
+      const cm = chest.material as THREE.MeshStandardMaterial;
+      cm.metalness = 0.55;
+      cm.roughness = 0.4;
+      chest.position.y = 1.08;
+      this.bob.add(chest);
+      const trim = box(0.7, 0.1, 0.44, p.accent);
+      trim.position.y = 1.3;
+      this.bob.add(trim);
+    }
+
+    // Flowing cape: a chain of segments that swings with movement.
+    if (this.opts.hasCape) {
+      let parent: THREE.Object3D = this.bob;
+      let yStart = 1.36;
+      for (let i = 0; i < 5; i++) {
+        const seg = new THREE.Group();
+        seg.position.set(0, i === 0 ? yStart : -0.34, i === 0 ? -0.22 : 0);
+        const cloth = box(0.56 - i * 0.04, 0.36, 0.06, p.accent);
+        (cloth.material as THREE.MeshStandardMaterial).roughness = 0.9;
+        cloth.position.y = -0.17;
+        seg.add(cloth);
+        parent.add(seg);
+        this.capeSegments.push(seg);
+        parent = seg;
+        yStart = 0;
+      }
     }
 
     this.root.scale.setScalar(this.scale);
@@ -250,6 +320,17 @@ export class VoxelCharacter {
     // Scarf flutter.
     if (this.scarf) {
       this.scarf.rotation.z = Math.sin(this.phase) * 0.05 * (this.moveSpeed01 + 0.2);
+    }
+
+    // Cape cloth: segments swing back with speed and ripple down the chain.
+    if (this.capeSegments.length) {
+      const lift = 0.12 + this.moveSpeed01 * 0.7 + (this.state === 'jump' ? 0.5 : 0);
+      for (let i = 0; i < this.capeSegments.length; i++) {
+        const ripple = Math.sin(this.phase * 1.4 - i * 0.7) * (0.05 + this.moveSpeed01 * 0.08);
+        const sway = Math.sin(this.phase * 0.9 - i * 0.5) * 0.06;
+        this.capeSegments[i].rotation.x = lift * (0.4 + i * 0.14) + ripple;
+        this.capeSegments[i].rotation.z = sway;
+      }
     }
   }
 

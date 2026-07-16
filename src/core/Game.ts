@@ -10,6 +10,7 @@ import { QuestSystem, type Quest } from './Quests';
 import { ShadowRift } from '../entities/ShadowRift';
 import { INTRO, SHADOW_KING_LINES } from './lore';
 import { createSkyDome, type SkyDome } from '../rendering/env';
+import { createAtmosphere, type Atmosphere } from '../rendering/atmosphere';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -46,8 +47,11 @@ export class Game {
   private hemi: THREE.HemisphereLight;
   private ambient: THREE.AmbientLight;
   private skyDome: SkyDome;
+  private atmosphere: Atmosphere;
   private composer: EffectComposer;
   private bloom: UnrealBloomPass;
+  private daylight = 1;
+  private sunDirVec = new THREE.Vector3(0, 1, 0);
 
   private enemies: Enemy[] = [];
   private spawnTimer = 0;
@@ -83,6 +87,10 @@ export class Game {
     // Gradient atmospheric sky dome (synced to the sun in updateSky).
     this.skyDome = createSkyDome();
     this.scene.add(this.skyDome.mesh);
+
+    // Stars, moon, drifting clouds.
+    this.atmosphere = createAtmosphere();
+    this.scene.add(this.atmosphere.group);
 
     // Image-based lighting from a neutral studio environment (one-time, cheap).
     const pmrem = new THREE.PMREMGenerator(this.renderer);
@@ -198,7 +206,14 @@ export class Game {
     // Hero movement (camera-relative).
     const running = this.input.isHeld('dodge') || Math.hypot(this.input.moveX, this.input.moveY) > 0.85;
     this.hero.update(dt, this.input.moveX, this.input.moveY, this.cameraCtrl.yaw, running, this.world);
-    this.cameraCtrl.update(dt, this.hero.x, this.hero.y, this.hero.z);
+    // Dynamic FOV while sprinting adds a sense of speed.
+    this.cameraCtrl.fovTarget = running && Math.hypot(this.input.moveX, this.input.moveY) > 0.1 ? 70 : 60;
+    this.cameraCtrl.update(dt, this.hero.x, this.hero.y, this.hero.z, this.world);
+
+    // Living world: wind sway, water, smoke, atmosphere.
+    const t = this.clock.elapsedTime;
+    this.world.update(t, dt, this.state.isNight);
+    this.atmosphere.update(dt, this.daylight, this.sunDirVec, this.camera.position);
 
     // Actions.
     for (const action of this.input.consumeActions()) {
@@ -288,7 +303,9 @@ export class Game {
         this.hud.showToast('+5 gold');
       }
     }
-    if (!hit) {
+    if (hit) {
+      this.cameraCtrl.addShake(0.3);
+    } else {
       // Attacking also chops a facing tree/rock for a smoother action feel.
       this.tryGather(false);
     }
@@ -341,6 +358,7 @@ export class Game {
       const dmg = e.update(dt, this.hero.x, this.hero.z, this.world);
       if (dmg > 0) {
         this.state.damage(dmg);
+        this.cameraCtrl.addShake(0.45);
         if (this.state.health <= 0) this.respawn();
       }
     }
@@ -372,6 +390,7 @@ export class Game {
     // Reveal the Shadow Rift when its objective begins.
     if (quest.id === 'seal' && !this.rift) {
       this.rift = new ShadowRift(0, -6);
+      this.rift.root.position.y = this.world.heightAt(0, -6);
       this.state.riftHp = this.rift.hp;
       this.state.riftMaxHp = this.rift.maxHp;
       this.scene.add(this.rift.root);
@@ -461,6 +480,8 @@ export class Game {
     (u.uSunDir.value as THREE.Vector3)
       .set(this.sun.position.x - this.hero.x, this.sun.position.y, this.sun.position.z - this.hero.z)
       .normalize();
+    this.daylight = daylight;
+    this.sunDirVec.copy(u.uSunDir.value as THREE.Vector3);
 
     // Fog matches the horizon haze.
     const fog = this.scene.fog as THREE.FogExp2;

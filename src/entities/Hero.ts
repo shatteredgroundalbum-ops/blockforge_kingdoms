@@ -31,7 +31,9 @@ export class Hero {
     this.character = new VoxelCharacter({
       palette: WARRIOR_PALETTE,
       hasHair: true,
-      hasScarf: true,
+      hasScarf: false,
+      hasCape: true,
+      armor: true,
       weapon: 'sword',
       scale: 1,
     });
@@ -85,13 +87,16 @@ export class Hero {
       speed01 = running ? 1 : 0.6;
     }
 
-    // Gravity / jump.
+    // Gravity / jump, following the terrain height.
+    const groundY = world.heightAt(this.x, this.z);
     this.vy -= 22 * dt;
     this.y += this.vy * dt;
-    if (this.y <= 0) {
-      this.y = 0;
+    if (this.y <= groundY) {
+      this.y = groundY;
       this.vy = 0;
       this.grounded = true;
+    } else {
+      this.grounded = false;
     }
 
     this.character.setLocomotion(speed01, this.grounded);
