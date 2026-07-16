@@ -82,3 +82,11 @@ Use `pnpm` (there is a `pnpm-lock.yaml`).
   high-count props rather than individual meshes.
 - This is still a vertical slice, not the finished commercial game — treat the
   current art/systems as a milestone and keep replacing placeholders.
+- **Settlement/leadership loop:** survivors (`src/entities/Villager.ts`) are
+  beacon-marked and, once the "Rescue" objective is active, run to the player
+  and are rescued on contact (they then wander as residents). Settlement tiers
+  (`SETTLEMENT_TIERS` in `lore.ts`) upgrade from population + structures and
+  spawn new buildings via `World.applyTier`. The Verdant Crown relic appears
+  after the rift is sealed. Because the automated test agent cannot navigate
+  precisely in 3D, rescue/pickup use generous proximity + come-to-player
+  behavior — keep interactions forgiving.
