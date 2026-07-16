@@ -105,6 +105,8 @@ export class Chapter1 {
     this.lockPlayer = true;
     this.ctx.hud.showDialogueSequence(speaker, lines, () => {
       this.busy = false;
+      // Restore control after dialogue; beats that want a cinematic re-lock in onDone.
+      this.lockPlayer = false;
       onDone();
     });
   }
