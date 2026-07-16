@@ -34,7 +34,7 @@ function box(
   emissive = 0x000000,
 ): THREE.Mesh {
   const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshLambertMaterial({ color, emissive });
+  const mat = new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.75, metalness: 0.05 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -107,7 +107,10 @@ export class VoxelCharacter {
       this.bob.add(group);
 
       if (isRight && this.opts.weapon === 'sword') {
-        const blade = box(0.1, 0.9, 0.1, 0xd7e2ee);
+        const blade = box(0.1, 0.9, 0.1, 0xdfe9f5);
+        const bm = blade.material as THREE.MeshStandardMaterial;
+        bm.metalness = 0.85;
+        bm.roughness = 0.28;
         blade.position.set(0, -0.9, 0.02);
         const guard = box(0.32, 0.08, 0.14, 0xcaa64a);
         guard.position.set(0, -0.5, 0.02);
@@ -132,8 +135,13 @@ export class VoxelCharacter {
     this.headPivot.add(head);
 
     const eyeMat = this.opts.palette.emissiveEyes
-      ? new THREE.MeshLambertMaterial({ color: p.eye, emissive: p.eye })
-      : new THREE.MeshLambertMaterial({ color: p.eye });
+      ? new THREE.MeshStandardMaterial({
+          color: p.eye,
+          emissive: p.eye,
+          emissiveIntensity: 2.2,
+          roughness: 0.5,
+        })
+      : new THREE.MeshStandardMaterial({ color: p.eye, roughness: 0.5 });
     for (const dx of [-0.1, 0.1]) {
       const eye = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, 0.05), eyeMat);
       eye.position.set(dx, 0.24, 0.23);

@@ -9,10 +9,25 @@ import { HUD } from '../ui/HUD';
 import { QuestSystem, type Quest } from './Quests';
 import { ShadowRift } from '../entities/ShadowRift';
 import { INTRO, SHADOW_KING_LINES } from './lore';
+import { createSkyDome, type SkyDome } from '../rendering/env';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
-const DAY_SKY = new THREE.Color(0x8fc7ff);
-const DUSK_SKY = new THREE.Color(0xff9a52);
-const NIGHT_SKY = new THREE.Color(0x0a0e22);
+// Sky gradient palettes keyed by daylight (dawn/day/dusk/night).
+const SKY = {
+  dayTop: new THREE.Color(0x2f6fd0),
+  dayHorizon: new THREE.Color(0xbfe0ff),
+  duskTop: new THREE.Color(0x3a3a7a),
+  duskHorizon: new THREE.Color(0xff8a4a),
+  nightTop: new THREE.Color(0x05070f),
+  nightHorizon: new THREE.Color(0x1a2036),
+  ground: new THREE.Color(0x2a2f2a),
+};
+const FOG_DAY = new THREE.Color(0xbfe0ff);
+const FOG_NIGHT = new THREE.Color(0x0a0e1c);
 
 export class Game {
   private renderer: THREE.WebGLRenderer;
@@ -30,6 +45,9 @@ export class Game {
   private sun: THREE.DirectionalLight;
   private hemi: THREE.HemisphereLight;
   private ambient: THREE.AmbientLight;
+  private skyDome: SkyDome;
+  private composer: EffectComposer;
+  private bloom: UnrealBloomPass;
 
   private enemies: Enemy[] = [];
   private spawnTimer = 0;
@@ -48,35 +66,64 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    // Filmic tone mapping + sRGB output for a richer, more realistic response.
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
 
     this.camera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      400,
+      600,
     );
 
-    this.scene.background = DAY_SKY.clone();
-    this.scene.fog = new THREE.Fog(DAY_SKY.clone(), 55, 150);
+    this.scene.fog = new THREE.FogExp2(FOG_DAY.clone(), 0.011);
+
+    // Gradient atmospheric sky dome (synced to the sun in updateSky).
+    this.skyDome = createSkyDome();
+    this.scene.add(this.skyDome.mesh);
+
+    // Image-based lighting from a neutral studio environment (one-time, cheap).
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    this.scene.environmentIntensity = 0.45;
 
     // Lighting.
-    this.hemi = new THREE.HemisphereLight(0xbfe3ff, 0x3a5a2a, 0.9);
+    this.hemi = new THREE.HemisphereLight(0xbfe3ff, 0x40532e, 0.5);
     this.scene.add(this.hemi);
-    this.ambient = new THREE.AmbientLight(0xffffff, 0.25);
+    this.ambient = new THREE.AmbientLight(0xffffff, 0.12);
     this.scene.add(this.ambient);
-    this.sun = new THREE.DirectionalLight(0xfff2d6, 1.6);
+    this.sun = new THREE.DirectionalLight(0xfff2d6, 2.2);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(1024, 1024);
+    this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.camera.near = 1;
-    this.sun.shadow.camera.far = 120;
+    this.sun.shadow.camera.far = 140;
     const s = 55;
     this.sun.shadow.camera.left = -s;
     this.sun.shadow.camera.right = s;
     this.sun.shadow.camera.top = s;
     this.sun.shadow.camera.bottom = -s;
-    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.bias = -0.0003;
+    this.sun.shadow.normalBias = 0.02;
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
+
+    // Post-processing: subtle bloom so emissive glows (campfire, rift, windows,
+    // enemy eyes) read realistically. Bloom mips run at half resolution to keep
+    // software-WebGL cost down.
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.bloom = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+      0.55,
+      0.5,
+      0.85,
+    );
+    this.composer.addPass(this.bloom);
+    this.composer.addPass(new OutputPass());
+    this.composer.setSize(window.innerWidth, window.innerHeight);
 
     // Systems + entities.
     this.world = new World(this.scene);
@@ -117,13 +164,17 @@ export class Game {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
+    this.bloom.setSize(window.innerWidth / 2, window.innerHeight / 2);
   };
 
   private loop = () => {
     requestAnimationFrame(this.loop);
     const dt = Math.min(0.05, this.clock.getDelta());
     this.update(dt);
-    this.renderer.render(this.scene, this.camera);
+    // Keep the sky dome centered on the camera.
+    this.skyDome.mesh.position.copy(this.camera.position);
+    this.composer.render();
   };
 
   private update(dt: number) {
@@ -386,24 +437,43 @@ export class Game {
     this.sun.target.position.set(this.hero.x, 0, this.hero.z);
 
     const daylight = Math.max(0, elevation);
-    // Sky color: night -> dusk -> day based on daylight.
-    const sky = new THREE.Color();
-    if (daylight <= 0) {
-      sky.copy(NIGHT_SKY);
-    } else if (daylight < 0.3) {
-      sky.copy(NIGHT_SKY).lerp(DUSK_SKY, daylight / 0.3);
-    } else {
-      sky.copy(DUSK_SKY).lerp(DAY_SKY, (daylight - 0.3) / 0.7);
-    }
-    (this.scene.background as THREE.Color).copy(sky);
-    (this.scene.fog as THREE.Fog).color.copy(sky);
+    // "Golden" factor peaks near the horizon (dawn/dusk warmth).
+    const golden = Math.max(0, 1 - Math.abs(elevation) / 0.35) * (daylight > 0 ? 1 : 0.4);
 
-    this.sun.intensity = 0.15 + daylight * 1.7;
-    this.sun.color.setHSL(0.09 + daylight * 0.05, 0.6, 0.55 + daylight * 0.15);
-    this.hemi.intensity = 0.2 + daylight * 0.8;
-    this.ambient.intensity = this.state.isNight ? 0.28 : 0.25;
-    // Cool moonlight tint at night.
-    if (this.state.isNight) this.ambient.color.setHex(0x35406a);
-    else this.ambient.color.setHex(0xffffff);
+    // Drive the sky dome gradient: night -> dusk -> day.
+    const u = this.skyDome.material.uniforms;
+    const top = u.uTop.value as THREE.Color;
+    const horizon = u.uHorizon.value as THREE.Color;
+    if (daylight <= 0.02) {
+      top.copy(SKY.nightTop);
+      horizon.copy(SKY.nightHorizon);
+    } else if (daylight < 0.3) {
+      const k = daylight / 0.3;
+      top.copy(SKY.nightTop).lerp(SKY.duskTop, k);
+      horizon.copy(SKY.nightHorizon).lerp(SKY.duskHorizon, k);
+    } else {
+      const k = (daylight - 0.3) / 0.7;
+      top.copy(SKY.duskTop).lerp(SKY.dayTop, k);
+      horizon.copy(SKY.duskHorizon).lerp(SKY.dayHorizon, k);
+    }
+    (u.uGround.value as THREE.Color).copy(SKY.ground);
+    (u.uSunColor.value as THREE.Color).setRGB(1.0, 0.85 - golden * 0.25, 0.6 - golden * 0.25);
+    (u.uSunDir.value as THREE.Vector3)
+      .set(this.sun.position.x - this.hero.x, this.sun.position.y, this.sun.position.z - this.hero.z)
+      .normalize();
+
+    // Fog matches the horizon haze.
+    const fog = this.scene.fog as THREE.FogExp2;
+    fog.color.copy(FOG_NIGHT).lerp(FOG_DAY, daylight);
+    fog.density = 0.010 + (1 - daylight) * 0.006;
+
+    // Sun/moon light: warm and golden low, neutral-bright high.
+    this.sun.intensity = 0.05 + daylight * 2.6;
+    this.sun.color.setRGB(1.0, 0.92 - golden * 0.22, 0.82 - golden * 0.32);
+    this.hemi.intensity = 0.12 + daylight * 0.5;
+    // IBL and ambient fill: dim at night, with a cool moonlit tint.
+    this.scene.environmentIntensity = 0.12 + daylight * 0.5;
+    this.ambient.intensity = this.state.isNight ? 0.14 : 0.08;
+    this.ambient.color.setHex(this.state.isNight ? 0x2a3a66 : 0xffffff);
   }
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { mulberry32, noise2 } from '../core/rng';
+import { mulberry32 } from '../core/rng';
+import { makeGroundTextures } from '../rendering/env';
 
 export type ColliderShape =
   | { kind: 'circle'; x: number; z: number; r: number }
@@ -15,14 +16,10 @@ export interface Gatherable {
   z: number;
 }
 
-const GRASS = 0x5a8f3a;
-const GRASS_DARK = 0x4a7d31;
-const DIRT = 0x6b4a2f;
-
-function box(w: number, h: number, d: number, color: number): THREE.Mesh {
+function box(w: number, h: number, d: number, color: number, roughness = 0.92): THREE.Mesh {
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshLambertMaterial({ color }),
+    new THREE.MeshStandardMaterial({ color, roughness, metalness: 0.0 }),
   );
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -63,22 +60,16 @@ export class World {
   }
 
   private buildGround() {
-    const seg = 48;
-    const geo = new THREE.PlaneGeometry(this.size * 2, this.size * 2, seg, seg);
+    const geo = new THREE.PlaneGeometry(this.size * 2, this.size * 2, 1, 1);
     geo.rotateX(-Math.PI / 2);
-    const colors: number[] = [];
-    const c = new THREE.Color();
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const n = noise2(x * 0.05, z * 0.05);
-      c.set(n > 0.15 ? GRASS_DARK : GRASS);
-      if (n < -0.35) c.set(DIRT);
-      colors.push(c.r, c.g, c.b);
-    }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const { map, normalMap } = makeGroundTextures();
+    const mat = new THREE.MeshStandardMaterial({
+      map,
+      normalMap,
+      normalScale: new THREE.Vector2(0.8, 0.8),
+      roughness: 1,
+      metalness: 0,
+    });
     const ground = new THREE.Mesh(geo, mat);
     ground.receiveShadow = true;
     this.root.add(ground);
@@ -113,10 +104,13 @@ export class World {
   private buildWater() {
     const geo = new THREE.CircleGeometry(11, 20);
     geo.rotateX(-Math.PI / 2);
-    const mat = new THREE.MeshLambertMaterial({
-      color: 0x2f7fbf,
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x2a6fa8,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.82,
+      roughness: 0.08,
+      metalness: 0.35,
+      envMapIntensity: 1.2,
     });
     const water = new THREE.Mesh(geo, mat);
     water.position.set(-26, 0.05, 22);
@@ -138,7 +132,11 @@ export class World {
       this.root.add(log);
     }
     this.campfireCore = box(0.6, 0.7, 0.6, 0xff7a1a);
-    (this.campfireCore.material as THREE.MeshLambertMaterial).emissive.set(0xff5a00);
+    {
+      const m = this.campfireCore.material as THREE.MeshStandardMaterial;
+      m.emissive.set(0xff6a10);
+      m.emissiveIntensity = 2.4;
+    }
     this.campfireCore.position.set(0, 0.7, 0);
     this.root.add(this.campfireCore);
     this.campfire.position.set(0, 2.2, 0);
@@ -170,8 +168,10 @@ export class World {
     g.add(door);
     // windows
     for (const dx of [-1.6, 1.6]) {
-      const win = box(0.9, 0.9, 0.2, 0x8fd0ff);
-      (win.material as THREE.MeshLambertMaterial).emissive.set(0x224466);
+      const win = box(0.9, 0.9, 0.2, 0xffd98a);
+      const wm = win.material as THREE.MeshStandardMaterial;
+      wm.emissive.set(0xffb454);
+      wm.emissiveIntensity = 1.1;
       win.position.set(dx, 1.8, 2.5);
       g.add(win);
     }
@@ -235,8 +235,10 @@ export class World {
       g.add(r);
     }
     // A few ore flecks read as "rare materials".
-    const ore = box(0.3, 0.3, 0.3, 0xffd452);
-    (ore.material as THREE.MeshLambertMaterial).emissive.set(0x3a2c00);
+    const ore = box(0.3, 0.3, 0.3, 0xffd452, 0.4);
+    const om = ore.material as THREE.MeshStandardMaterial;
+    om.emissive.set(0x5a3f00);
+    om.metalness = 0.6;
     ore.position.set(0.4, 1.0, 0.4);
     g.add(ore);
     g.position.set(x, 0, z);

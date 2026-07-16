@@ -35,14 +35,25 @@ export class ShadowRift {
     blightGeo.rotateX(-Math.PI / 2);
     this.blight = new THREE.Mesh(
       blightGeo,
-      new THREE.MeshLambertMaterial({ color: 0x1c0f2a, transparent: true, opacity: 0.7 }),
+      new THREE.MeshStandardMaterial({
+        color: 0x1c0f2a,
+        transparent: true,
+        opacity: 0.7,
+        roughness: 0.85,
+        metalness: 0,
+      }),
     );
     this.blight.position.y = 0.06;
     this.blight.receiveShadow = true;
     this.root.add(this.blight);
 
     // Glowing core.
-    const coreMat = new THREE.MeshLambertMaterial({ color: 0x7a1fb0, emissive: 0x8a2ff0 });
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x7a1fb0,
+      emissive: 0x8a2ff0,
+      emissiveIntensity: 2.2,
+      roughness: 0.4,
+    });
     this.core = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.4, 1.4), coreMat);
     this.core.position.y = 1.8;
     this.core.castShadow = true;
@@ -53,7 +64,12 @@ export class ShadowRift {
       const h = 1.2 + Math.random() * 2.2;
       const shard = new THREE.Mesh(
         new THREE.BoxGeometry(0.4, h, 0.4),
-        new THREE.MeshLambertMaterial({ color: 0x2a1740, emissive: 0x5a1f8a }),
+        new THREE.MeshStandardMaterial({
+          color: 0x2a1740,
+          emissive: 0x5a1f8a,
+          emissiveIntensity: 1.6,
+          roughness: 0.5,
+        }),
       );
       const ang = (i / 7) * Math.PI * 2;
       const r = 1.8 + Math.random();
@@ -110,14 +126,14 @@ export class ShadowRift {
     this.hp = 0;
     this.light.intensity = 0;
     // Cleanse: collapse the corruption and recolor the scar to healed earth.
-    (this.core.material as THREE.MeshLambertMaterial).emissive.set(0x000000);
-    (this.core.material as THREE.MeshLambertMaterial).color.set(0x4a7d43);
+    (this.core.material as THREE.MeshStandardMaterial).emissive.set(0x000000);
+    (this.core.material as THREE.MeshStandardMaterial).color.set(0x4a7d43);
     for (const s of this.shards) {
-      (s.material as THREE.MeshLambertMaterial).emissive.set(0x000000);
+      (s.material as THREE.MeshStandardMaterial).emissive.set(0x000000);
       s.visible = false;
     }
-    (this.blight.material as THREE.MeshLambertMaterial).color.set(0x3f6b32);
-    (this.blight.material as THREE.MeshLambertMaterial).opacity = 0.35;
+    (this.blight.material as THREE.MeshStandardMaterial).color.set(0x3f6b32);
+    (this.blight.material as THREE.MeshStandardMaterial).opacity = 0.35;
     this.core.scale.set(0.4, 0.2, 0.4);
     this.core.position.y = 0.4;
   }
