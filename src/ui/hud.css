@@ -311,8 +311,8 @@ body,
 .dialogue {
   position: absolute;
   left: 50%;
-  bottom: 26px;
-  transform: translateX(-50%) translateY(20px);
+  top: 112px;
+  transform: translateX(-50%) translateY(-12px);
   width: min(680px, 92vw);
   padding: 14px 18px;
   background: linear-gradient(180deg, rgba(30, 12, 46, 0.94), rgba(14, 8, 26, 0.94));
@@ -324,6 +324,10 @@ body,
   z-index: 15;
 }
 .dialogue.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (min-width: 780px) {
+  .dialogue { top: auto; bottom: 26px; transform: translateX(-50%) translateY(12px); }
+  .dialogue.show { transform: translateX(-50%) translateY(0); }
+}
 .dialogue .speaker {
   color: #d08bff;
   font-weight: 800;
