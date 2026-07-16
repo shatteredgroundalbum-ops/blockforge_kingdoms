@@ -17,7 +17,8 @@ to a single WebGL canvas; the HUD/touch controls are plain DOM over the canvas.
 - `src/entities/ShadowRift.ts` — the Blight rift (Hollow nest) the player seals.
 - `src/entities/VoxelCharacter.ts` — the articulated, rigged voxel humanoid + procedural animations (idle/walk/run/jump/attack/gather). Reused by hero and enemies.
 - `src/entities/Hero.ts` / `Enemy.ts` — player and corrupted-creature entities.
-- `src/world/World.ts` — terrain, trees/rocks (gatherables), water, settlement, colliders.
+- `src/world/World.ts` — terrain, trees/rocks (gatherables), water, settlement, colliders, per-frame world animation (`update`).
+- `src/rendering/` — realism/world systems: `env.ts` (gradient sky dome + procedural ground textures), `terrain.ts` (rolling heightfield + `terrainHeight` sampler used by movement/placement), `vegetation.ts` (instanced wind-animated grass/flowers/mushrooms), `atmosphere.ts` (stars/moon/clouds + `SmokeEmitter`).
 - `src/systems/Input.ts` — desktop (WASD/mouse) + mobile (joystick/buttons) input.
 - `src/systems/CameraController.ts` — third-person orbit follow camera.
 - `src/ui/HUD.ts` + `src/ui/hud.css` — HUD and on-screen touch controls.
@@ -67,3 +68,17 @@ Use `pnpm` (there is a `pnpm-lock.yaml`).
   placed right next to the spawn point for immediate testing.
 - Desktop test controls: WASD move, drag to look, `E` gather, `B` build,
   `J`/`F` attack, `Space` jump, `Shift` run.
+- **Rendering pipeline:** ACES tone mapping + sRGB, gradient sky dome synced to
+  the sun, `RoomEnvironment` IBL scaled by daylight, PBR (`MeshStandardMaterial`)
+  everywhere, and a half-res `UnrealBloom` pass for emissive glows. All tuned to
+  stay smooth under software WebGL — if you raise pixel ratio, shadow-map size,
+  or bloom resolution, re-check framerate.
+- **Ground height is authoritative:** anything placed in the world (entities,
+  props, gatherables, structures) must sit on `terrainHeight(x, z)` /
+  `world.heightAt`. The settlement/spawn area is intentionally flattened; the
+  pond sits in a carved basin.
+- **Perf via instancing:** ground cover uses `InstancedMesh` with a wind vertex
+  shader injected through `onBeforeCompile`; prefer instancing for any new
+  high-count props rather than individual meshes.
+- This is still a vertical slice, not the finished commercial game — treat the
+  current art/systems as a milestone and keep replacing placeholders.
