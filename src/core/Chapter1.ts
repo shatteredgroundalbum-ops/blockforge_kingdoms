@@ -77,8 +77,9 @@ export class Chapter1 {
     this.ruins = buildRuins((x, z) => world.heightAt(x, z));
     scene.add(this.ruins.group);
 
-    // Ensure gatherable resources are on hand near the camp for the basics beat.
-    world.spawnGatherCluster(0, 12);
+    // Ensure gatherable resources line the ruins so the "gather" beat is always
+    // reachable wherever the player pauses after the rescue.
+    world.spawnGatherCluster(0, 15);
 
     // Spawn a few refugees behind the settlement (the refuge) for the ending.
     for (const [x, z] of [[3, -2], [-3, -3], [1, -4]] as [number, number][]) {

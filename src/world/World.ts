@@ -63,10 +63,14 @@ export class World {
   // Spawn a small cluster of gatherable trees/rocks near a point (used by
   // Chapter One so the "gather supplies" beat has resources on hand).
   spawnGatherCluster(cx: number, cz: number) {
-    this.addTree(cx + 3, cz + 1.5);
-    this.addTree(cx - 3, cz + 1.5);
-    this.addRock(cx + 2.5, cz - 2);
-    this.addRock(cx - 2.5, cz - 2);
+    // Spread nodes along the corridor so at least one is always in gather range
+    // wherever the player pauses.
+    this.addTree(cx + 2.6, cz + 4);
+    this.addRock(cx - 2.6, cz + 4);
+    this.addTree(cx - 2.6, cz);
+    this.addRock(cx + 2.6, cz);
+    this.addTree(cx + 2.6, cz - 4);
+    this.addRock(cx - 2.6, cz - 4);
   }
 
   private buildVegetation() {
